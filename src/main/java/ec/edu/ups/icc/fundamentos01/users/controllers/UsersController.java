@@ -75,8 +75,6 @@ public class UsersController {
 
     /**
      * Obtiene productos de un usuario con filtros opcionales
-     * Ejemplo: GET
-     * /api/users/5/products-v2?name=laptop&minPrice=500&maxPrice=2000&categoryId=3
      */
 
     @GetMapping("/{id}/products-v2")

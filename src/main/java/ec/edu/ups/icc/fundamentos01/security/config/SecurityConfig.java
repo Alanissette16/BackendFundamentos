@@ -64,9 +64,11 @@ public class SecurityConfig {
                 // Endpoints públicos (sin autenticación)
                 .requestMatchers("/auth/**").permitAll()
                 .requestMatchers("/status/**").permitAll()
-                .requestMatchers("/actuator/**").permitAll()
-                
-                // Todos los demás endpoints requieren autenticación
+                // Endpoints por rol
+                .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                .requestMatchers("/api/moderator/**").hasAnyRole("ADMIN", "MODERATOR")
+            
+                // Resto requiere autenticación
                 .anyRequest().authenticated()
             );
             http.authenticationProvider(authenticationProvider());

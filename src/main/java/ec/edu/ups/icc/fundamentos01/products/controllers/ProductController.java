@@ -6,6 +6,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Slice;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -33,12 +34,14 @@ public class ProductController {
     }
 
     @PostMapping
-    public ResponseEntity<ProductResponseDto> create(@Valid @RequestBody CreateProductDto dto) {
+    public ResponseEntity<ProductResponseDto> create(
+        @Valid @RequestBody CreateProductDto dto) {
         ProductResponseDto created = productService.create(dto);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
     @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<ProductResponseDto>> findAll() {
         List<ProductResponseDto> products = productService.findAll();
         return ResponseEntity.ok(products);
@@ -111,13 +114,13 @@ public class ProductController {
      */
     @GetMapping("/search")
     public ResponseEntity<Page<ProductResponseDto>> findWithFilters(
-            @RequestParam(required = false) String name,
-            @RequestParam(required = false) Double minPrice,
-            @RequestParam(required = false) Double maxPrice,
-            @RequestParam(required = false) Long categoryId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "createdAt") String[] sort) {
+            @RequestParam(value = "name", required = false) String name,
+            @RequestParam(value = "minPrice", required = false) Double minPrice,
+            @RequestParam(value = "maxPrice", required = false) Double maxPrice,
+            @RequestParam(value = "categoryId", required = false) Long categoryId,
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size,
+            @RequestParam(value = "sort", defaultValue = "createdAt") String[] sort) {
 
         Page<ProductResponseDto> products = productService.findWithFilters(
             name, minPrice, maxPrice, categoryId, page, size, sort);
@@ -132,14 +135,14 @@ public class ProductController {
      */
     @GetMapping("/user/{userId}")
     public ResponseEntity<Page<ProductResponseDto>> findByUserId(
-            @PathVariable Long userId,
-            @RequestParam(required = false) String name,
-            @RequestParam(required = false) Double minPrice,
-            @RequestParam(required = false) Double maxPrice,
-            @RequestParam(required = false) Long categoryId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "createdAt") String[] sort) {
+            @PathVariable("userId") Long userId,
+            @RequestParam(value = "name", required = false) String name,
+            @RequestParam(value = "minPrice", required = false) Double minPrice,
+            @RequestParam(value = "maxPrice", required = false) Double maxPrice,
+            @RequestParam(value = "categoryId", required = false) Long categoryId,
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size,
+            @RequestParam(value = "sort", defaultValue = "id") String[] sort) {
 
         Page<ProductResponseDto> products = productService.findByUserIdWithFilters(
             userId, name, minPrice, maxPrice, categoryId, page, size, sort);

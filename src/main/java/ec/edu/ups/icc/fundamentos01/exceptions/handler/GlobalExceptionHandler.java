@@ -2,23 +2,26 @@ package ec.edu.ups.icc.fundamentos01.exceptions.handler;
 
 import java.util.HashMap;
 import java.util.Map;
-import jakarta.servlet.http.HttpServletRequest;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authorization.AuthorizationDeniedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
-
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import ec.edu.ups.icc.fundamentos01.exceptions.base.ApplicationException;
 import ec.edu.ups.icc.fundamentos01.exceptions.response.ErrorResponse;
+import jakarta.servlet.http.HttpServletRequest;
 
 
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+// ============== EXCEPCIONES DE NEGOCIO ==============
     @ExceptionHandler(ApplicationException.class)
     public ResponseEntity<ErrorResponse> handleApplicationException(
             ApplicationException ex,
@@ -34,7 +37,7 @@ public class GlobalExceptionHandler {
                 .status(ex.getStatus())
                 .body(response);
     }
-
+// ============== EXCEPCIONES DE VALIDACIÓN ==============
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidationException(
             MethodArgumentNotValidException ex,
@@ -59,7 +62,50 @@ public class GlobalExceptionHandler {
                 .badRequest()
                 .body(response);
     }
+    // ============== EXCEPCIONES DE SEGURIDAD ==============
+    @ExceptionHandler(AuthorizationDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleAuthorizationDeniedException(
+            AuthorizationDeniedException ex,
+            HttpServletRequest request) {
+        ErrorResponse response = new ErrorResponse(
+                HttpStatus.FORBIDDEN,
+                "No tienes permisos para acceder a este recurso",
+                request.getRequestURI());
 
+        return ResponseEntity
+                .status(HttpStatus.FORBIDDEN)
+                .body(response);
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleAccessDeniedException(
+            AccessDeniedException ex,
+            HttpServletRequest request) {
+        ErrorResponse response = new ErrorResponse(
+                HttpStatus.FORBIDDEN,
+                "Acceso denegado. No tienes los permisos necesarios",
+                request.getRequestURI());
+
+        return ResponseEntity
+                .status(HttpStatus.FORBIDDEN)
+                .body(response);
+    }
+
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<ErrorResponse> handleAuthenticationException(
+            AuthenticationException ex,
+            HttpServletRequest request) {
+        ErrorResponse response = new ErrorResponse(
+                HttpStatus.UNAUTHORIZED,
+                "Credenciales inválidas o sesión expirada",
+                request.getRequestURI());
+
+        return ResponseEntity
+                .status(HttpStatus.UNAUTHORIZED)
+                .body(response);
+    }
+
+    // ============== EXCEPCIONES GENERALES ==============
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleUnexpectedException(
             Exception ex,

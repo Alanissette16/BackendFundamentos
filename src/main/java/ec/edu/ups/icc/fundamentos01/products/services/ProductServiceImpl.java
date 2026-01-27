@@ -10,6 +10,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Service;
 
 import ec.edu.ups.icc.fundamentos01.categories.dtos.CategoryResponseDto;
@@ -23,6 +25,7 @@ import ec.edu.ups.icc.fundamentos01.products.dtos.UpdateProductDto;
 import ec.edu.ups.icc.fundamentos01.products.models.Product;
 import ec.edu.ups.icc.fundamentos01.products.models.ProductEntity;
 import ec.edu.ups.icc.fundamentos01.products.repository.ProductRepository;
+import ec.edu.ups.icc.fundamentos01.security.services.UserDetailsImpl;
 import ec.edu.ups.icc.fundamentos01.users.models.UserEntity;
 import ec.edu.ups.icc.fundamentos01.users.repository.UserRepository;
 
@@ -115,11 +118,14 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    public ProductResponseDto update(Long id, UpdateProductDto dto) {
+    public ProductResponseDto update(Long id, UpdateProductDto dto, UserDetailsImpl currentUser) {
 
         // 1. BUSCAR PRODUCTO EXISTENTE
         ProductEntity existing = productRepo.findById(id)
                 .orElseThrow(() -> new NotFoundException("Producto no encontrado con ID: " + id));
+                
+        // 2. VALIDACIÓN DE OWNERSHIP (pasando el usuario)
+        validateOwnership(existing, currentUser);
 
         // 2. VALIDAR Y OBTENER CATEGORÍAS
         Set<CategoryEntity> categories = validateAndGetCategories(dto.categoryIds);
@@ -138,10 +144,13 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    public void delete(Long id) {
+    public void delete(Long id, UserDetailsImpl currentUser) {
 
         ProductEntity product = productRepo.findById(id)
                 .orElseThrow(() -> new NotFoundException("Producto no encontrado con ID: " + id));
+
+        // ← VALIDACIÓN DE OWNERSHIP (pasando el usuario)
+        validateOwnership(product, currentUser);
 
         // Eliminación física (también se puede implementar lógica)
         productRepo.delete(product);
@@ -303,5 +312,31 @@ public class ProductServiceImpl implements ProductService {
         if (minPrice != null && maxPrice != null && maxPrice < minPrice) {
             throw new BadRequestException("El precio máximo debe ser mayor o igual al precio mínimo");
         }
+    }
+
+    private void validateOwnership(ProductEntity product, UserDetailsImpl currentUser) {
+        // ADMIN y MODERATOR pueden modificar cualquier producto
+        if (hasAnyRole(currentUser, "ROLE_ADMIN", "ROLE_MODERATOR")) {
+            return;  // ← Pasa la validación automáticamente
+        }
+
+        // USER solo puede modificar sus propios productos
+        if (!product.getOwner().getId().equals(currentUser.getId())) {
+            // ← Lanza excepción que será capturada por GlobalExceptionHandler
+            throw new AccessDeniedException("No puedes modificar productos ajenos");
+        }
+
+        // Si llega aquí, es el dueño → Pasa la validación
+    }
+
+    private boolean hasAnyRole(UserDetailsImpl user, String... roles) {
+        for (String role : roles) {
+            for (GrantedAuthority authority : user.getAuthorities()) {
+                if (authority.getAuthority().equals(role)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 }

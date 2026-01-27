@@ -83,7 +83,7 @@ public class GlobalExceptionHandler {
             HttpServletRequest request) {
         ErrorResponse response = new ErrorResponse(
                 HttpStatus.FORBIDDEN,
-                "Acceso denegado. No tienes los permisos necesarios",
+                ex.getMessage(), // ← Usa el mensaje personalizado de la excepción
                 request.getRequestURI());
 
         return ResponseEntity
